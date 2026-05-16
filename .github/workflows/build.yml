@@ -21,6 +21,59 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch upstream Dockerfile
+        run: |
+          curl -fL https://raw.githubusercontent.com/maziggy/orca-slicer-api/bambuddy/profile-resolver/Dockerfile -o Dockerfile
+
+      - name: Patch Dockerfile for stricter ARM64 extraction validation
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('Dockerfile')
+          text = path.read_text()
+
+          old = '''RUN if [ "$TARGETARCH" = "arm64" ]; then \\
+\techo "Downloading ARM64 AppImage from kldzj/orca-slicer-arm64..."; \\
+\tcurl -o orca.AppImage -L "https://github.com/kldzj/orca-slicer-arm64/releases/download/v${ORCA_VERSION}-arm64/OrcaSlicer-${ORCA_VERSION}-arm64-linux.AppImage"; \\
+\tchmod +x orca.AppImage; \\
+\t./orca.AppImage --appimage-extract; \\
+\trm orca.AppImage; \\
+\telse \\
+\techo "Downloading AMD64 AppImage from SoftFever/OrcaSlicer..."; \\
+\tcurl -o orca.AppImage -L "https://github.com/SoftFever/OrcaSlicer/releases/download/v${ORCA_VERSION}/OrcaSlicer_Linux_AppImage_Ubuntu2404_V${ORCA_VERSION}.AppImage"; \\
+\tchmod +x orca.AppImage; \\
+\t./orca.AppImage --appimage-extract; \\
+\trm orca.AppImage; \\
+\tfi'''
+
+          new = '''RUN set -eux; \\
+\techo "TARGETARCH=${TARGETARCH}"; \\
+\tif [ "$TARGETARCH" = "arm64" ]; then \\
+\t\techo "Downloading ARM64 AppImage from kldzj/orca-slicer-arm64..."; \\
+\t\tORCA_URL="https://github.com/kldzj/orca-slicer-arm64/releases/download/v${ORCA_VERSION}-arm64/OrcaSlicer-${ORCA_VERSION}-arm64-linux.AppImage"; \\
+\telse \\
+\t\techo "Downloading AMD64 AppImage from SoftFever/OrcaSlicer..."; \\
+\t\tORCA_URL="https://github.com/SoftFever/OrcaSlicer/releases/download/v${ORCA_VERSION}/OrcaSlicer_Linux_AppImage_Ubuntu2404_V${ORCA_VERSION}.AppImage"; \\
+\tfi; \\
+\tcurl -fL --retry 5 --retry-delay 5 -o orca.AppImage "$ORCA_URL"; \\
+\tls -lh orca.AppImage; \\
+\tfile orca.AppImage; \\
+\tchmod +x orca.AppImage; \\
+\t./orca.AppImage --appimage-extract; \\
+\ttest -d squashfs-root; \\
+\ttest -x squashfs-root/AppRun; \\
+\trm orca.AppImage'''
+
+          if old not in text:
+              raise SystemExit('Expected upstream Dockerfile block not found')
+
+          text = text.replace(old, new)
+          path.write_text(text)
+          PY
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -38,7 +91,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: https://github.com/maziggy/orca-slicer-api.git#bambuddy/profile-resolver
-          file: Dockerfile
+          file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           build-args: |
