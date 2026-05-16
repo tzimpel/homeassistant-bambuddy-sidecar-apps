@@ -2,7 +2,7 @@ name: OrcaSlicer Sidecar
 slug: orcaslicer_sidecar
 description: OrcaSlicer API sidecar for Bambuddy server-side slicing
 version: "2.3.1"
-url: https://github.com/YOUR_GITHUB_USER/ha-orcaslicer-sidecar/tree/main/orcaslicer-sidecar
+url: https://github.com/tzimpel/homeassistant-bambuddy-sidecar-apps/tree/main/orcaslicer-sidecar
 
 arch:
   - amd64
