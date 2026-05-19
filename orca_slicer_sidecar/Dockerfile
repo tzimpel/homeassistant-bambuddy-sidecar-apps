@@ -8,7 +8,7 @@ WORKDIR /app
 # Download OrcaSlicer based on architecture
 # AMD64: Use official AppImage from SoftFever/OrcaSlicer
 # ARM64: Use custom-built AppImage from kldzj/orca-slicer-arm64
-RUN if [ "$BUILD_ARCH" = "arm64" ]; then \
+RUN if [ "$BUILD_ARCH" = "aarch64" ]; then \
 	echo "Downloading ARM64 AppImage from kldzj/orca-slicer-arm64..."; \
 	curl -o orca.AppImage -L "https://github.com/kldzj/orca-slicer-arm64/releases/download/v${ORCA_VERSION}-arm64/OrcaSlicer-${ORCA_VERSION}-arm64-linux.AppImage"; \
 	chmod +x orca.AppImage; \
@@ -57,7 +57,7 @@ COPY --from=build /app/squashfs-root /app/squashfs-root
 
 ENV PORT=3000
 ENV ORCASLICER_PATH=/app/squashfs-root/AppRun
-ENV DATA_PATH=/data
+ENV DATA_PATH=/app/data
 ENV NODE_ENV=production
 
 EXPOSE 3000

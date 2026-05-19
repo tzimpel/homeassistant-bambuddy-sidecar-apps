@@ -18,7 +18,7 @@ ARG BUILD_ARCH
 
 WORKDIR /app
 
-RUN if [ "$BUILD_ARCH" = "arm64" ]; then \
+RUN if [ "$BUILD_ARCH" = "aarch64" ]; then \
         echo "ARM64 not supported — BambuStudio has no official ARM64 AppImage."; \
         exit 1; \
     fi; \
@@ -64,7 +64,7 @@ ENV PORT=3000
 # `ORCASLICER_PATH` is the wrapper's slicer-binary env var, regardless of
 # which slicer is bundled. Point it at the extracted BambuStudio AppRun.
 ENV ORCASLICER_PATH=/app/squashfs-root/AppRun
-ENV DATA_PATH=/data
+ENV DATA_PATH=/app/data
 ENV NODE_ENV=production
 # Bundled BBL profiles live under the same path inside BambuStudio.
 ENV BUNDLED_PROFILES_PATH=/app/squashfs-root/resources/profiles/BBL
