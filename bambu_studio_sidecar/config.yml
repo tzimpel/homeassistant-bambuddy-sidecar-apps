@@ -1,0 +1,12 @@
+name: "Bambuddy Bambu Studio Sidecar"
+description: "The Bambu Studio Sidecar for Bambuddy as a Home Assistant App!"
+version: "v0.3.0-bambu02.06.00.51"
+slug: "bambu_studio_sidecar"
+init: false
+arch:
+  - amd64
+startup: services
+network: host
+ports:
+  3000/tcp: 3001
+watchdog: http://[HOST]:[PORT:3000]/health
