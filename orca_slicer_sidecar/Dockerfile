@@ -30,7 +30,7 @@ COPY . .
 
 RUN npm run build
 
-FROM FROM ghcr.io/home-assistant/base-ubuntu:24.04
+FROM ghcr.io/home-assistant/base-ubuntu:24.04
 
 RUN apt-get update \
 	&& apt-get upgrade -y \

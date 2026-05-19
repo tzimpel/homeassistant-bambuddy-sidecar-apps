@@ -34,7 +34,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM FROM ghcr.io/home-assistant/base-ubuntu:22.04
+FROM ghcr.io/home-assistant/base-ubuntu:22.04
 
 # BambuStudio is built against webkit2gtk-4.0 (Ubuntu 22.04 era); 24.04
 # only ships 4.1, so the runtime image stays on 22.04.
