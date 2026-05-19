@@ -10,3 +10,5 @@ network: host
 ports:
   3000/tcp: 3001
 watchdog: http://[HOST]:[PORT:3000]/health
+environment:
+  BAMBU_VERSION: 02.06.00.51
