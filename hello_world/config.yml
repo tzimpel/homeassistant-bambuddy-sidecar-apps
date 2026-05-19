@@ -1,0 +1,8 @@
+name: "Hello, world!"
+description: "Just a playground to test things!"
+version: "0.1.0"
+slug: "hello_world"
+init: false
+arch:
+  - aarch64
+  - amd64
