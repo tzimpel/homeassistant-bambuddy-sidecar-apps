@@ -6,7 +6,7 @@ init: false
 arch:
   - amd64
 startup: services
-network: host
+host_network: true
 ports:
   3000/tcp: 3001
 watchdog: http://[HOST]:[PORT:3000]/health
