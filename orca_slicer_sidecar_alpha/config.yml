@@ -1,0 +1,20 @@
+name: "Bambuddy Orca Slicer Sidecar"
+description: "The Orca Slicer Sidecar for Bambuddy as a Home Assistant App!"
+version: "v0.3.0-orca2.4.0-alpha"
+slug: "orca_slicer_sidecar"
+init: false
+stage: experimental
+arch:
+  - aarch64
+  - amd64
+startup: services
+host_network: true
+ports:
+  3000/tcp: 3003
+watchdog: http://[HOST]:[PORT:3000]/health
+environment:
+  ORCA_VERSION: 2.4.0-alpha
+  PORT: 3000
+  ORCASLICER_PATH: /app/squashfs-root/AppRun
+  DATA_PATH: /app/data
+  NODE_ENV: production

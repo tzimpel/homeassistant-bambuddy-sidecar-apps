@@ -1,0 +1,6 @@
+{
+  "type": "machine",
+  "name": "Bambu Lab X1 Carbon 0.4 nozzle",
+  "inherits": "Bambu Lab X1 Carbon 0.4 nozzle",
+  "from": "User"
+}
