@@ -12,8 +12,8 @@ ports:
   3000/tcp: 3003
 watchdog: http://[HOST]:[PORT:3000]/health
 environment:
-  ORCA_VERSION: 2.3.2
+  ORCA_VERSION: "2.3.2"
   PORT: "3000"
-  ORCASLICER_PATH: /app/squashfs-root/AppRun
-  DATA_PATH: /app/data
-  NODE_ENV: production
+  ORCASLICER_PATH: "/app/squashfs-root/AppRun"
+  DATA_PATH: "/app/data"
+  NODE_ENV: "production"
