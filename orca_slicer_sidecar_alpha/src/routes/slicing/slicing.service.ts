@@ -21,6 +21,8 @@ import {
 import { progressStore, parseProgressLine } from "./progress-store";
 import { resolveBundlePresetPath } from "../profiles/bundle.service";
 
+const DEFAULT_SLICER_PATH = "/app/squashfs-root/AppRun";
+
 export async function sliceModel(
   file: Buffer,
   filename: string,
@@ -182,11 +184,16 @@ export async function sliceModel(
 
   args.push(inPath);
 
-  if (!process.env.ORCASLICER_PATH) {
+  const slicerPath = process.env.ORCASLICER_PATH || DEFAULT_SLICER_PATH;
+  try {
+    await fs.access(slicerPath, fs.constants.X_OK);
+  } catch (error) {
     throw new AppError(
       500,
       "Slicing is not configured properly on the server",
-      "ORCASLICER_PATH environment variable is not defined",
+      `Slicer executable is not available at ${slicerPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
     );
   }
 
@@ -224,7 +231,7 @@ export async function sliceModel(
   }
   try {
     await new Promise<void>((resolve, reject) => {
-      const child = spawn(process.env.ORCASLICER_PATH as string, args, {
+      const child = spawn(slicerPath, args, {
         // Inherit env so DISPLAY / XDG_* etc. (used by some slicer plugins)
         // remain consistent with the previous execFile invocation.
         env: process.env,
