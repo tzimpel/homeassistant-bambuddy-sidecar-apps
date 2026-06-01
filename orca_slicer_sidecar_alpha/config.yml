@@ -1,7 +1,7 @@
 name: "Bambuddy Orca Slicer Sidecar"
 description: "The Orca Slicer Sidecar for Bambuddy as a Home Assistant App!"
 version: "v0.3.0-orca2.4.0-alpha"
-slug: "orca_slicer_sidecar"
+slug: "orca_slicer_alpha_sidecar"
 init: false
 stage: experimental
 arch:
