@@ -26,6 +26,39 @@ export const uploadJson = multer({
   limits: { fileSize: 4_000_000 },
 });
 
+// BambuStudio's "Export Preset Bundle" emits files with a `.bbscfg`
+// extension but standard zip content. Browsers/clients vary on the MIME
+// type they send: zip-aware ones use application/zip, others fall through
+// to application/octet-stream. The two real bundles we tested against were
+// 38KB and 32KB; 50MB is comfortably above any plausible single-printer
+// bundle and well below the 100MB model cap.
+const allowedBundleMimeTypes = [
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/octet-stream",
+];
+const allowedBundleExts = [".bbscfg", ".zip"];
+
+export const uploadBundle = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (
+      !allowedBundleMimeTypes.includes(file.mimetype) ||
+      !allowedBundleExts.includes(ext)
+    ) {
+      return cb(
+        new AppError(
+          400,
+          "Invalid file type. Only .bbscfg printer-preset-bundle archives are accepted."
+        )
+      );
+    }
+    cb(null, true);
+  },
+  limits: { fileSize: 50_000_000 },
+});
+
 export const uploadModel = multer({
   storage,
   fileFilter: (req, file, cb) => {

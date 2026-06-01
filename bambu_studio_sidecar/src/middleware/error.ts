@@ -26,7 +26,15 @@ export function errorHandler(
 
   const status = typeof err.status === "number" ? err.status : 500;
 
-  res.status(status).json({
-    message: err.message,
-  });
+  // Include `causeMessage` (the underlying CLI stderr / wrapped error) as
+  // `details` in the response. Bambuddy reads this field to surface the
+  // actual slice-rejection reason in its own log instead of the generic
+  // top-level `Failed to slice the model`. Without it, every CLI failure
+  // looks the same on the calling side and the embedded-settings fallback
+  // hides the real cause.
+  const body: { message: string; details?: string } = { message: err.message };
+  if (err.causeMessage) {
+    body.details = err.causeMessage;
+  }
+  res.status(status).json(body);
 }

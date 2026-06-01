@@ -3,7 +3,9 @@ import { promises as fs } from "fs";
 import * as os from "os";
 import * as path from "path";
 import {
+  ensureProfileType,
   mergeProfiles,
+  normalizeFromField,
   resolveProfile,
   getDefaultBundledProfilesPath,
   type ProfileJson,
@@ -276,6 +278,108 @@ describe("resolveProfile", () => {
     await expect(
       resolveProfile(input, "machine", { bundledProfilesPath, maxDepth: 4 }),
     ).rejects.toThrow(/exceeded maximum depth/i);
+  });
+});
+
+describe("ensureProfileType", () => {
+  it("stamps type from category when missing", () => {
+    // BambuStudio's "Export Preset Bundle" omits `type:` on System-tier
+    // printer presets and emits `inherits: ""` (the GUI inferred type from
+    // the directory the file lived in). After the inherits walk no-ops on
+    // the empty string, the verbatim delta would hit the CLI without a
+    // type field and trigger "The input preset file is invalid and can not
+    // be parsed." — exactly the demo failure this guard exists to prevent.
+    const profile: ProfileJson = {
+      name: "Bambu Lab X1 Carbon 0.4 nozzle",
+      from: "System",
+      inherits: "",
+    };
+    const result = ensureProfileType(profile, "machine");
+    expect(result.type).toBe("machine");
+  });
+
+  it("stamps type when the field is an empty string", () => {
+    const profile: ProfileJson = { type: "", name: "x" };
+    ensureProfileType(profile, "process");
+    expect(profile.type).toBe("process");
+  });
+
+  it("leaves an already-set type alone", () => {
+    // A correctly-shaped user export (or a successfully-resolved
+    // ancestor chain) already carries `type:`. We must not clobber it
+    // even if the category arg disagrees — the bundle's own value is
+    // authoritative and the mismatch would otherwise mask a real
+    // mis-categorised file.
+    const profile: ProfileJson = { type: "filament", name: "x" };
+    ensureProfileType(profile, "machine");
+    expect(profile.type).toBe("filament");
+  });
+
+  it("works for each ProfileCategory value", () => {
+    const machine = ensureProfileType({}, "machine");
+    const process = ensureProfileType({}, "process");
+    const filament = ensureProfileType({}, "filament");
+    expect(machine.type).toBe("machine");
+    expect(process.type).toBe("process");
+    expect(filament.type).toBe("filament");
+  });
+
+  it("mutates the input in place and returns the same reference", () => {
+    // materializeProfile relies on the in-place mutation so it can call
+    // ensureProfileType after resolveProfile (whose return is the merged
+    // chain) without juggling identities.
+    const profile: ProfileJson = { name: "x" };
+    const result = ensureProfileType(profile, "machine");
+    expect(result).toBe(profile);
+  });
+});
+
+describe("normalizeFromField", () => {
+  it("rewrites 'User' to 'system'", () => {
+    // User clones flow through resolveProfile's inherits walk and emerge
+    // functionally equivalent to a system preset; the CLI's compat check
+    // rejects them with `from User unsupported` otherwise.
+    const profile: ProfileJson = { name: "x", from: "User" };
+    normalizeFromField(profile);
+    expect(profile.from).toBe("system");
+  });
+
+  it("rewrites 'System' (capital S) to 'system'", () => {
+    // BambuStudio's "Export Preset Bundle" for a System-tier root preset
+    // writes literal "System" — the GUI accepts that casing because its
+    // check is case-insensitive, but the CLI's is not. Without the
+    // rewrite the CLI fails with `from System unsupported` (return -5),
+    // surfaced as the same "The input preset file is invalid and can not
+    // be parsed." rejection as the missing-type case.
+    const profile: ProfileJson = { name: "x", from: "System" };
+    normalizeFromField(profile);
+    expect(profile.from).toBe("system");
+  });
+
+  it("leaves 'system' alone", () => {
+    const profile: ProfileJson = { name: "x", from: "system" };
+    normalizeFromField(profile);
+    expect(profile.from).toBe("system");
+  });
+
+  it("leaves 'Default' and other distinct tiers untouched", () => {
+    // "Default" is a separate tier the CLI handles — rewriting it would
+    // mask a real mis-tagged file.
+    const profile: ProfileJson = { name: "x", from: "Default" };
+    normalizeFromField(profile);
+    expect(profile.from).toBe("Default");
+  });
+
+  it("leaves a missing from field undefined", () => {
+    const profile: ProfileJson = { name: "x" };
+    normalizeFromField(profile);
+    expect(profile.from).toBeUndefined();
+  });
+
+  it("mutates in place and returns the same reference", () => {
+    const profile: ProfileJson = { from: "User" };
+    const result = normalizeFromField(profile);
+    expect(result).toBe(profile);
   });
 });
 

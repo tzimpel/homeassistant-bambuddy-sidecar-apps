@@ -76,16 +76,12 @@ export async function resolveProfile(
     depth += 1;
   }
 
-  // The CLI's compatibility check rejects `from: "User"` profiles as
-  // incompatible with `from: "system"` process/filament profiles —
-  // independent of any compatible_printers name match. Real-world user
-  // exports always carry `from: "User"`, so they fail the check even
-  // when their `inherits:` would have placed them firmly in the system
-  // hierarchy. After full flattening the output is functionally a system
-  // preset (it contains all the inherited content), so mark it as one.
-  if (current.from === "User") {
-    current.from = "system";
-  }
+  // After full flattening the output is functionally a system preset, so
+  // mark it as one (see normalizeFromField for the casing rationale).
+  // materializeProfile also calls this unconditionally so System-tier
+  // exports with `inherits: ""` — which never reach this code path — get
+  // the same treatment.
+  normalizeFromField(current);
 
   // OrcaSlicer's GUI prefixes user clones of system presets with "# "
   // (e.g. "# Bambu Lab X1 Carbon 0.4 nozzle"). The CLI's compatibility
@@ -127,6 +123,49 @@ function stripUserSentinels(profile: ProfileJson): void {
       delete profile[k];
     }
   }
+}
+
+// BambuStudio's "Export Preset Bundle" omits `type:` on System-tier presets
+// (the GUI infers it from the directory the file lived in) and emits
+// `inherits: ""` for them, so resolveProfile's inherits walk never runs and
+// can't pick up `type` from a parent. The CLI's --load-settings/--load-filaments
+// parser then sees a type-less file, logs `operator(): unknown config type
+// ... in load-settings`, writes `error_string: "The input preset file is
+// invalid and can not be parsed.", return_code: -5` to result.json, and
+// exits 0. Stamp the category we already know.
+export function ensureProfileType(
+  profile: ProfileJson,
+  category: ProfileCategory,
+): ProfileJson {
+  if (typeof profile.type !== "string" || profile.type.length === 0) {
+    profile.type = category;
+  }
+  return profile;
+}
+
+// The CLI's compatibility check accepts `from: "system"` (lowercase) as the
+// canonical system-tier marker and rejects everything else with
+// `from <value> unsupported` (return_code -5, surfaced as the same
+// "input preset file is invalid and can not be parsed." rejection).
+//
+// Two casings appear in real exports:
+//   - "User"   — user-cloned presets out of the OrcaSlicer/BambuStudio GUI.
+//                After resolveProfile flattens the inherits chain, the
+//                output is functionally a system preset and should be
+//                marked as such.
+//   - "System" — BambuStudio's "Export Preset Bundle" for a System-tier
+//                root preset (printer / built-in filament) writes this
+//                literally. The GUI accepts it because the GUI's own
+//                check is case-insensitive; the CLI's is not.
+//
+// "Default" and other values are NOT remapped — those are distinct tiers
+// the CLI handles, and silently rewriting them would mask a real
+// mis-tagged file.
+export function normalizeFromField(profile: ProfileJson): ProfileJson {
+  if (profile.from === "User" || profile.from === "System") {
+    profile.from = "system";
+  }
+  return profile;
 }
 
 export function mergeProfiles(
